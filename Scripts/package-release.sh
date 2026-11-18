@@ -65,6 +65,7 @@ cp -X "$PROJECT_DIR/Assets/AppIcon.png" "$APP_DIR/Contents/Resources/AppIcon.png
 
 cp -X "$PROJECT_DIR/Assets/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
 cp -X "$PROJECT_DIR/Vendor/ZIPFoundation/Resources/PrivacyInfo.xcprivacy" "$APP_DIR/Contents/Resources/"
+cp -X "$PROJECT_DIR/LICENSE" "$APP_DIR/Contents/Resources/LICENSE"
 mkdir -p "$APP_DIR/Contents/Resources/ThirdParty"
 cp -X "$PROJECT_DIR/ThirdParty/"* "$APP_DIR/Contents/Resources/ThirdParty/"
 
@@ -84,7 +85,7 @@ fi
 while IFS= read -r bundle_file; do
     relative_file="${bundle_file#"$APP_DIR/"}"
     case "$relative_file" in
-        Contents/Info.plist|Contents/MacOS/JSONic|Contents/Resources/AppIcon.png|\
+        Contents/Resources/LICENSE|Contents/Info.plist|Contents/MacOS/JSONic|Contents/Resources/AppIcon.png|\
         Contents/Resources/AppIcon.icns|Contents/Resources/PrivacyInfo.xcprivacy|\
         Contents/Resources/ThirdParty/SOURCES.md|Contents/Resources/ThirdParty/ZIPFoundation-LICENSE.txt|\
         Contents/Resources/ThirdParty/libxls-LICENSE.txt|Contents/Resources/ThirdParty/pii-guard-LICENSE.txt|\

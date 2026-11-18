@@ -39,3 +39,7 @@
 Swift · SwiftUI · AppKit · SQLite FTS5 · libxls · ZIPFoundation.
 
 [Сборка и устройство проекта](docs/DEVELOPMENT.md) · [Сторонние компоненты и лицензии](ThirdParty/SOURCES.md)
+
+## Лицензия
+
+[MIT](LICENSE) © 2026 rs-an. Сторонние компоненты сохраняют [свои лицензии](ThirdParty/SOURCES.md).
