@@ -1,0 +1,42 @@
+# macOS and editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Build products and releases
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+/dist/
+/releases/
+*.app/
+*.dmg
+*.zip
+*.tar
+*.gz
+*.7z
+
+# Local data, credentials and tooling
+.env
+.env.*
+!.env.example
+*.p12
+*.p8
+*.pem
+*.key
+*.pfx
+*.mobileprovision
+*.provisionprofile
+*.keychain*
+*.sqlite*
+*.db
+*.log
+*.bak
+*.backup
+.ssh/
+.aws/
+.codex/
+.agents/

@@ -1,0 +1,13 @@
+* text=auto
+*.swift text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.png binary
+*.icns binary
+*.xls binary
+*.xlsx binary
+
+# Keep upstream sources intact and separate them in GitHub language statistics.
+Vendor/** linguist-vendored -whitespace
+Examples/*.csv -text whitespace=cr-at-eol
