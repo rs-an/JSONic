@@ -2,44 +2,46 @@
 
 # JSONic
 
-Приложение для macOS: просмотр CSV и Excel, быстрый поиск по логам и разбор JSON внутри ячеек. Всё обрабатывается локально, без отправки файлов на сервер.
+A native macOS app for viewing CSV and Excel files, searching logs, and exploring JSON inside cells. All processing happens locally; your files are never uploaded to a server.
 
-## Возможности
+## Features
 
-- CSV, TSV, XLS и XLSX с выбором листа.
-- Поиск по таблице и внутри ячейки; JSON с подсветкой и в виде дерева.
-- Редактирование ячеек без изменения исходного файла.
-- Экспорт таблицы, результатов поиска или выделения в CSV; одной ячейки — в JSON/TXT.
-- Маскирование чувствительных данных с предпросмотром замен.
+- Open CSV, TSV, XLS, and XLSX files, with sheet selection for Excel workbooks.
+- Search tables and individual cells; explore JSON with syntax highlighting and a tree view.
+- Edit cells without modifying the original file.
+- Export a table, search results, or a selection to CSV; export a single cell to JSON or TXT.
+- Mask sensitive data and preview replacements before exporting.
 
-## Интерфейс
+Masking recognizes English and Russian field names in table columns and JSON. Email and IP detection is language-independent; logins and secrets are detected through recognized fields or explicit labels. Free-text name and address detection focuses on Russian, phone detection on `+7`/`8` formats, and document detection on Russian INN, SNILS, and passports. General English free-text name and address recognition is not supported.
 
-Просмотр таблицы и вложенного JSON на синтетических данных.
+## Screenshots
 
-![Таблица и просмотр JSON](docs/screenshots/interface.png)
+Explore a table and nested JSON using synthetic sample data.
 
-Предпросмотр маскирования: 43 замены в одной выбранной ячейке.
+![Table and JSON viewer](docs/screenshots/interface.png)
 
-![Предпросмотр замен чувствительных данных](docs/screenshots/masking.png)
+Preview masking results: 43 replacements in a single selected cell.
 
-## Установка
+![Sensitive data masking preview](docs/screenshots/masking.png)
 
-**macOS 13 Ventura или новее · Apple Silicon и Intel.**
+## Installation
 
-1. Скачайте **DMG** в разделе [Releases](../../releases).
-2. Откройте его и перетащите **JSONic** в **Программы**.
-3. Запустите приложение из папки «Программы».
+**macOS 13 Ventura or later · Apple Silicon and Intel.**
 
-Приложение не нотарифицировано Apple. Если macOS блокирует запуск: после попытки открытия перейдите в **Системные настройки → Конфиденциальность и безопасность → Всё равно открыть**, затем подтвердите запуск.
+1. Download the **DMG** from [Releases](../../releases).
+2. Open it and drag **JSONic** to **Applications**.
+3. Launch the app from Applications.
 
-Для знакомства откройте [demo.csv](Examples/demo.csv): 60 синтетических событий интернет-магазина с вложенным JSON и примерами для маскирования. Перед передачей экспорта проверьте замены: автоматическое маскирование может пропустить чувствительные данные. Правки сохраняются через экспорт копии.
+The app is not notarized by Apple. If macOS blocks it, try opening it first, then go to **System Settings → Privacy & Security → Open Anyway** and confirm.
 
-## Технологии
+To try it out, open [demo.csv](Examples/demo.csv): 60 synthetic online store events with nested JSON and examples for masking. Review replacements before sharing an export: automatic masking may miss sensitive data. Save your edits by exporting a copy.
+
+## Built With
 
 Swift · SwiftUI · AppKit · SQLite FTS5 · libxls · ZIPFoundation.
 
-[Сборка и устройство проекта](docs/DEVELOPMENT.md) · [Сторонние компоненты и лицензии](ThirdParty/SOURCES.md)
+[Build instructions and project structure](docs/DEVELOPMENT.md) · [Third-party components and licenses](ThirdParty/SOURCES.md)
 
-## Лицензия
+## License
 
-[MIT](LICENSE) © 2026 rs-an. Сторонние компоненты сохраняют [свои лицензии](ThirdParty/SOURCES.md).
+[MIT](LICENSE) © 2026 rs-an. Third-party components retain [their respective licenses](ThirdParty/SOURCES.md).
