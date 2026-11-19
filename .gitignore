@@ -40,3 +40,5 @@ xcuserdata/
 .aws/
 .codex/
 .agents/
+
+/local-design/
