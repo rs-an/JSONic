@@ -98,8 +98,7 @@ public final class CSVStore: @unchecked Sendable {
     public let cache: URL
     public let size: UInt64
     private let fingerprint: Fingerprint
-    // Keep the original cache location for compatibility with installed builds.
-    public static var cacheRoot: URL { FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("CSVScope", isDirectory: true) }
+    public static var cacheRoot: URL { FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("JSONic", isDirectory: true) }
     public init(source: URL, format: CSVFormat, cacheRoot: URL? = nil, originalSource: URL? = nil, retaining: AnyObject? = nil) throws {
         self.source = source; self.format = format
         self.originalSource = originalSource; self.retainedImport = retaining

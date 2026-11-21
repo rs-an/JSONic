@@ -1,6 +1,5 @@
 import Foundation
 import Darwin
-import CryptoKit
 
 public enum MaskKind: String, CaseIterable, Sendable {
     case phone = "PHONE", person = "PERSON", email = "EMAIL", telegram = "TELEGRAM"

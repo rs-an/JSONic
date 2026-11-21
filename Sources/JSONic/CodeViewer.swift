@@ -9,6 +9,7 @@ extension Notification.Name {
 
 struct CodeViewer: View {
     let pages: [String]
+    let bracketStates: [JSONBracketState]
     let fontSize: Double
     let highlight: Bool
     let findRequest: UUID?
@@ -71,7 +72,7 @@ struct CodeViewer: View {
                     Spacer()
                 }.font(.callout)
             }
-            CodeText(text: pages[visiblePage], bracketState: JSONBracketState.before(pages.prefix(visiblePage)), fontSize: fontSize, highlight: highlight,
+            CodeText(text: pages[visiblePage], bracketState: highlight && visiblePage > 0 ? bracketStates[visiblePage - 1] : JSONBracketState(), fontSize: fontSize, highlight: highlight,
                      matches: localMatches, active: active, reveal: reveal)
         }
         .onAppear { if findRequest != nil { openFind() } }
@@ -197,7 +198,7 @@ private struct CodeText: NSViewRepresentable {
 }
 
 // Carry string/escape state across display pages so braces inside strings stay untouched.
-private struct JSONBracketState: Equatable {
+struct JSONBracketState: Equatable {
     var depth = 0
     var inString = false
     var escaped = false
@@ -220,13 +221,7 @@ private struct JSONBracketState: Equatable {
         return nil
     }
 
-    static func before(_ pages: ArraySlice<String>) -> Self {
-        var state = Self()
-        for page in pages {
-            for character in page.utf16 { _ = state.consume(character) }
-        }
-        return state
-    }
+
 }
 
 private enum JSONPalette {

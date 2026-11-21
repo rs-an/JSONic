@@ -85,7 +85,18 @@ struct RecordsTable: NSViewRepresentable {
         let layoutChanged = context.coordinator.pageRevision != model.pageRevision || context.coordinator.wrapped != model.wrapCells
         context.coordinator.pageRevision = model.pageRevision; context.coordinator.wrapped = model.wrapCells
         if layoutChanged { context.coordinator.heights = [:] }
-        table.reloadData()
+        let selectionChanged = context.coordinator.rows != model.selectedRows || context.coordinator.cells != model.selectedCells
+        context.coordinator.rows = model.selectedRows
+        context.coordinator.cells = model.selectedCells
+        if layoutChanged {
+            table.reloadData()
+        } else if selectionChanged {
+            let visible = table.rows(in: table.visibleRect)
+            if visible.length > 0 {
+                table.reloadData(forRowIndexes: IndexSet(integersIn: visible.location..<NSMaxRange(visible)),
+                                 columnIndexes: IndexSet(integersIn: 0..<table.numberOfColumns))
+            }
+        }
         if layoutChanged { table.noteHeightOfRows(withIndexesChanged: IndexSet(integersIn: 0..<model.pageRows.count)) }
         if let index = model.pageRows.firstIndex(where: { $0.id == model.activeCell?.row }) {
             table.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
@@ -111,6 +122,8 @@ struct RecordsTable: NSViewRepresentable {
         var model: AppModel
         var headers: [String] = []
         var first: Int64?
+        var rows: Set<Int64> = []
+        var cells: Set<CellID> = []
         var activeRow: Int64?
         var updatingSelection = false
         var pageRevision: UUID?

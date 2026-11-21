@@ -58,7 +58,7 @@ public struct ExcelWorkbook: Sendable {
     public func importSheet(_ sheetID: Int, token: Cancellation, progress: @escaping (String, Double) -> Void = { _, _ in }) throws -> ExcelImportResult {
         try validate(); try token.check()
         guard let sheet = sheets.first(where: { $0.id == sheetID }) else { throw ScopeError("Лист Excel не найден.") }
-        let result = try ExcelImportResult(); result.sheetName = sheet.name; result.sourceFingerprint = fingerprint
+        let result = try ExcelImportResult(); result.sourceFingerprint = fingerprint
         let spool = try ExcelSpool(folder: result.folder, token: token)
         if source.pathExtension.lowercased() == "xls" {
             progress("Чтение XLS…", 0)
@@ -200,7 +200,6 @@ public final class ExcelImportResult: @unchecked Sendable {
     public let folder: URL
     public let csv: URL
     fileprivate var sourceFingerprint: Fingerprint?
-    public fileprivate(set) var sheetName = ""
     public fileprivate(set) var headerRow = 1
     public fileprivate(set) var formulaCount = 0
     public fileprivate(set) var missingFormulaCount = 0

@@ -119,6 +119,7 @@ struct CSVListPane: View {
 struct DetailView: View {
     @ObservedObject var model: AppModel
     @Binding var expanded: Bool
+    @State private var treeRoot: JSONItem?
     @State private var mode = "JSON"
     @State private var findRequest: UUID?
     @AppStorage("viewerFontSize") private var fontSize = 16.0
@@ -149,25 +150,36 @@ struct DetailView: View {
             Divider()
             if model.detailLoading { ProgressView("Чтение и разбор…").frame(maxWidth: .infinity, maxHeight: .infinity) }
             else if let detail = model.detail {
-                if mode == "Дерево", detail.root != nil {
+                if mode == "Дерево", detail.jsonValue != nil {
                 ScrollView(.vertical) {
                     VStack(alignment: .leading, spacing: 12) {
-                        if let root = detail.root {
+                        if let root = treeRoot {
                             if !detail.prefix.isEmpty { ChunkedText(value: detail.prefix).foregroundStyle(.secondary) }
                             JSONBranch(item: root, initiallyExpanded: true, fontSize: fontSize).id(root.id)
                             if !detail.suffix.isEmpty { ChunkedText(value: detail.suffix).foregroundStyle(.secondary) }
-                        } else { ChunkedText(value: detail.raw) }
+                        } else { ProgressView() }
                     }
                     .frame(maxWidth: .infinity, alignment: .topLeading)
                     .padding(4)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .id(model.activeCell)
+                .task(id: detail.id) {
+                    treeRoot = nil
+                    let token = Cancellation()
+                    let root = await withTaskCancellationHandler {
+                        await Task.detached {
+                            try? detail.jsonValue.map { try JSONItem(label: detail.label, value: $0, token: token) }
+                        }.value
+                    } onCancel: { token.cancel() }
+                    if !Task.isCancelled { treeRoot = root }
+                }
+                .onDisappear { treeRoot = nil }
                 } else {
-                    CodeViewer(pages: mode == "JSON" ? detail.prettyPages : detail.rawPages, fontSize: fontSize, highlight: mode == "JSON" && detail.root != nil, findRequest: findRequest)
+                    CodeViewer(pages: mode == "JSON" ? detail.prettyPages : detail.rawPages, bracketStates: detail.bracketStates, fontSize: fontSize, highlight: mode == "JSON" && detail.jsonValue != nil, findRequest: findRequest)
                         .id("\(model.activeCell?.row ?? 0)-\(model.activeCell?.column ?? 0)-\(mode)")
                 }
-                if detail.root == nil { Text("Текст или некорректный JSON").font(.caption).foregroundStyle(.secondary) }
+                if detail.jsonValue == nil { Text("Текст или некорректный JSON").font(.caption).foregroundStyle(.secondary) }
             } else { Text("Выберите ячейку для просмотра").foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity) }
         }
         .onReceive(NotificationCenter.default.publisher(for: .cellFind)) { _ in

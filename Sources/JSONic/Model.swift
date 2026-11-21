@@ -49,6 +49,8 @@ import JSONicCore
     private var exportToken = Cancellation()
     private var indexTask: Task<Void, Never>?, searchTask: Task<Void, Never>?, countTask: Task<Void, Never>?
     private var detailTask: Task<Void, Never>?
+    private var countSpec: SearchSpec?
+    private var countRevision = -1
     private var cursor: Int64 = 0
     private var starts: [Int64] = [0]
     private var pendingTableMove: (direction: Int, column: Int?)?
@@ -99,6 +101,13 @@ import JSONicCore
             } catch { savingEdit = false; self.error = error.localizedDescription }
         }
     }
+    private func resetDocumentState() {
+        indexToken.cancel(); searchToken.cancel(); countToken.cancel(); detailToken.cancel()
+        generation = UUID(); searchID = UUID(); detailID = UUID()
+        countSpec = nil; found = nil; searching = false; pendingTableMove = nil
+        headers = []; pageRows = []; selectedRows = []; selectedCells = []
+        detail = nil; activeCell = nil; detailLoading = false
+    }
     func pickFile() {
         let panel = NSOpenPanel(); panel.allowedContentTypes = [.commaSeparatedText, .tabSeparatedText, .plainText] + ["xls", "xlsx"].compactMap { UTType(filenameExtension: $0) }; panel.allowsMultipleSelection = false
         if panel.runModal() == .OK, let url = panel.url { open(url) }
@@ -106,11 +115,11 @@ import JSONicCore
     func open(_ url: URL, format: CSVFormat? = nil) {
         guard !exporting, editingCell == nil, confirmDiscardEdits() else { return }
         editedCells = []
-        indexToken.cancel(); searchToken.cancel(); countToken.cancel(); detailToken.cancel()
+        resetDocumentState()
         let previous = indexTask
-        generation = UUID(); let gen = generation
+        let gen = generation
         workbook = nil; showSheetPicker = false; sheetName = nil; excelNote = ""
-        source = url; store = nil; headers = []; pageRows = []; selectedRows = []; selectedCells = []; detail = nil; activeCell = nil
+        source = url; store = nil
         complete = false; indexing = true; progress = 0; total = 0; found = nil; error = nil
         status = "Открытие файла…"; starts = [0]; pageNumber = 1
         let token = Cancellation(); indexToken = token
@@ -148,10 +157,10 @@ import JSONicCore
         editedCells = []
         let sheet = selectedSheet
         showSheetPicker = false
-        indexToken.cancel(); searchToken.cancel(); countToken.cancel(); detailToken.cancel()
+        resetDocumentState()
         let previous = indexTask
-        generation = UUID(); let gen = generation
-        store = nil; headers = []; pageRows = []; selectedRows = []; selectedCells = []; detail = nil; activeCell = nil
+        let gen = generation
+        store = nil
         complete = false; indexing = true; searching = false; progress = 0; total = 0; found = nil; error = nil
         starts = [0]; pageNumber = 1; pendingTableMove = nil
         sheetName = info.sheets.first(where: { $0.id == sheet })?.name; excelNote = ""
@@ -207,12 +216,15 @@ import JSONicCore
     func cancelIndex() { indexToken.cancel() }
     func reloadFormat() { if workbook != nil { openSelectedSheet(); return }; if let source { open(source, format: CSVFormat(delimiter: delimiter, encoding: encoding)) } }
     func search(reset: Bool = true, debounce: Bool = true) {
-        searchToken.cancel(); countToken.cancel(); searchID = UUID()
+        searchToken.cancel(); searchID = UUID()
+        if countSpec != spec || countRevision != store?.editRevision {
+            countToken.cancel(); countSpec = nil; found = nil
+        }
         let id = searchID, gen = generation
         if reset { pendingTableMove = nil; starts = [0]; pageNumber = 1 }
         guard let store else { return }
         let spec = spec, start = starts.last ?? 0, token = Cancellation(), wrapped = wrapCells
-        searchToken = token; searching = true; found = nil
+        searchToken = token; searching = true
         searchTask = Task.detached(priority: .userInitiated) { [weak self] in
             do {
                 if debounce { try await Task.sleep(nanoseconds: 250_000_000) }
@@ -233,25 +245,31 @@ import JSONicCore
                 select(row: row.id, column: pending.column, additive: false)
             }
         }
-        if complete { countMatches(id: id) }
+        if complete { countMatches() }
     }
     private func searchFailed(_ e: Error, id: UUID) { guard searchID == id else { return }; searching = false; pendingTableMove = nil; error = e.localizedDescription }
-    private func countMatches(id: UUID) {
+    private func countMatches() {
         guard let store else { return }
         if query.isEmpty { found = total; return }
         let token = Cancellation(), spec = spec
+        guard countSpec != spec || countRevision != store.editRevision else { return }
+        countSpec = spec; countRevision = store.editRevision
         countToken = token
         countTask = Task.detached(priority: .utility) { [weak self] in
             do {
                 var count: Int64 = 0
                 try store.visit(spec: spec, token: token) { _, _ in count += 1 }
                 try token.check()
-                await self?.counted(count, id: id)
-            } catch {}
+                await self?.counted(count, token: token)
+            } catch { await self?.counted(nil, token: token) }
         }
     }
-    private func counted(_ count: Int64, id: UUID) { if searchID == id { found = count } }
-    func cancelSearch() { searchToken.cancel(); countToken.cancel(); searchID = UUID(); searching = false; pendingTableMove = nil }
+    private func counted(_ count: Int64?, token: Cancellation) {
+        guard countToken === token, !token.isCancelled else { return }
+        found = count
+        if count == nil { countSpec = nil }
+    }
+    func cancelSearch() { countSpec = nil; searchToken.cancel(); countToken.cancel(); searchID = UUID(); searching = false; pendingTableMove = nil }
     func nextPage() { guard !exhausted && !searching else { return }; starts.append(cursor); pageNumber = starts.count; search(reset: false, debounce: false) }
     func previousPage() { guard starts.count > 1 else { return }; starts.removeLast(); pageNumber = starts.count; search(reset: false, debounce: false) }
     func moveTableSelection(direction: Int, column: Int?) {
@@ -376,10 +394,10 @@ import JSONicCore
     func clearCache() {
         guard let store, !exporting, editingCell == nil, confirmDiscardEdits() else { return }
         editedCells = []
-        indexToken.cancel(); searchToken.cancel(); countToken.cancel(); detailToken.cancel()
-        generation = UUID(); searchID = UUID(); detailID = UUID()
+        resetDocumentState()
+
         let tasks = [indexTask, searchTask, countTask, detailTask]
-        self.store = nil; source = nil; workbook = nil; sheetName = nil; excelNote = ""; headers = []; pageRows = []; selectedRows = []; selectedCells = []; detail = nil; activeCell = nil
+        self.store = nil; source = nil; workbook = nil; sheetName = nil; excelNote = ""
         indexing = false; complete = false; total = 0; progress = 0; searching = false
         Task {
             for task in tasks { await task?.value }
@@ -389,9 +407,9 @@ import JSONicCore
     private func checkSource() {
         guard let store else { return }
         do { try store.validate() } catch {
-            indexToken.cancel(); searchToken.cancel(); countToken.cancel(); detailToken.cancel(); exportToken.cancel()
-            generation = UUID(); searchID = UUID(); detailID = UUID()
-            selectedRows = []; selectedCells = []; pageRows = []; detail = nil; activeCell = nil; complete = false; indexing = false; searching = false
+            resetDocumentState(); exportToken.cancel()
+
+            complete = false; indexing = false; searching = false
             exportAnalysis = nil; exportReport = nil
             self.store = nil; status = "Исходный файл изменился — откройте заново"; self.error = error.localizedDescription
         }
@@ -423,23 +441,35 @@ struct DetailData: @unchecked Sendable {
     let pretty: String
     let rawPages: [String]
     let prettyPages: [String]
-    let root: JSONItem?
+    let id = UUID()
+    let label: String
+    let jsonValue: Any?
+    let bracketStates: [JSONBracketState]
     let prefix: String
     let suffix: String
-    let summaries: [String]
     init(values: [String], headers: [String], column: Int, token: Cancellation) throws {
         guard values.indices.contains(column), headers.indices.contains(column) else { throw ScopeError("Некорректная колонка.") }
+        label = headers[column]
         raw = values[column]
-        summaries = values.map { String($0.prefix(100)) }
         if let envelope = try extractJSON(raw, fragments: true, token: token) {
             prefix = envelope.prefix; suffix = envelope.suffix
             let data = try JSONSerialization.data(withJSONObject: envelope.value, options: [.prettyPrinted, .sortedKeys, .fragmentsAllowed, .withoutEscapingSlashes])
             let json = String(decoding: data, as: UTF8.self)
             pretty = (prefix.isEmpty ? "" : prefix.trimmingCharacters(in: .whitespacesAndNewlines) + "\n\n") + json + (suffix.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "" : "\n" + suffix)
-            root = try JSONItem(label: headers[column], value: envelope.value, token: token)
-        } else { root = nil; prefix = ""; suffix = ""; pretty = raw }
+            jsonValue = envelope.value
+        } else { jsonValue = nil; prefix = ""; suffix = ""; pretty = raw }
         rawPages = Self.pages(raw)
-        prettyPages = Self.pages(pretty)
+        prettyPages = pretty == raw ? rawPages : Self.pages(pretty)
+        var state = JSONBracketState()
+        var states: [JSONBracketState] = []
+        if jsonValue != nil && prettyPages.count > 1 {
+            for page in prettyPages.dropLast() {
+                try token.check()
+                for character in page.utf16 { _ = state.consume(character) }
+                states.append(state)
+            }
+        }
+        bracketStates = states
     }
 }
 
