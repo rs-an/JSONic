@@ -12,6 +12,8 @@ A native macOS app for viewing CSV and Excel files, searching logs, and explorin
 - Export a table, search results, or a selection to CSV; export a single cell to JSON or TXT.
 - Mask sensitive data and preview replacements before exporting.
 
+Masking scans cell contents and nested JSON values for recognizable patterns such as email addresses, regardless of the header.
+
 Masking recognizes English and Russian field names in table columns and JSON. Email and IP detection is language-independent; logins and secrets are detected through recognized fields or explicit labels. Free-text name and address detection focuses on Russian, phone detection on `+7`/`8` formats, and document detection on Russian INN, SNILS, and passports. General English free-text name and address recognition is not supported.
 
 ## Screenshots

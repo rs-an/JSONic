@@ -223,6 +223,11 @@ public final class MaskAnalysis: @unchecked Sendable {
                 if body == nil && prefix == nil && suffix == nil { return nil }
                 return .envelope(prefix: prefix, value: body, suffix: suffix)
             }
+            // A complete, unambiguous token can refine a field hint. Never partially
+            // mask a contextual value (especially a credential or a full address).
+            if kind != .secret, let hit = try StructuredDataDetector.matches(string, enabled: request.rules.additionalTypes.intersection([.email]), token: token).first(where: { $0.range == NSRange(string.startIndex..., in: string) && $0.kind != kind }) {
+                return try whole(string, kind: hit.kind, rule: hit.reason)
+            }
             var description = rule
             if kind == .inn { description += StructuredDataDetector.validINN(string) ? " · контрольное число верно" : " · проверить ИНН" }
             if kind == .snils { description += StructuredDataDetector.validSNILS(string) ? " · контрольное число верно" : " · проверить СНИЛС" }

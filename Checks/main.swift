@@ -164,6 +164,17 @@ final class CoreTests {
         XCTAssertFalse(masked.contains("Анна")); XCTAssertFalse(masked.contains("999"))
         XCTAssertNotNil(try extractJSON(masked))
     }
+    func testArbitraryFields() throws {
+        let id = "f73ddce0-3def-43ea-b512-123456789abc"
+        let store = try fixture([["甲", "β", "γ", "δ"], [id, "INFO: письмо для anna@example.com", "146", "2026-11-24"]])
+        let out = folder.appendingPathComponent("selective.csv")
+        let report = try export(store, request: ExportRequest(), destination: out, token: Cancellation())
+        XCTAssertEqual(report.replacements, 1)
+        let reader = try CSVReader(url: out, format: store.format)
+        _ = try reader.next()
+        XCTAssertEqual(try parse(XCTUnwrap(reader.next()).data, format: store.format),
+                       [id, "INFO: письмо для EMAIL_001", "146", "2026-11-24"])
+    }
     func testAutomaticMasking() throws {
         let json = #"{"id":"79130000000","numeric":79130000000,"again":"+7 (913) 000-00-00","name":"Пример Сервис","first_name":"Зульфия","date":"2026-11-11","counter":104857600,"msg":"Анна Ивановна Иванова позвонила Сергею Петровичу Петрову. Меня зовут Зульфия Ахметова."}"#
         let store = try fixture([["message"], ["[info] response: " + json]])
@@ -442,6 +453,7 @@ let checks: [(String, () throws -> Void)] = [
     ("Export scopes and malformed JSON", tests.testExportScopesSingleValueAndMalformedJSON),
     ("Cancellation and source protection", tests.testCancellationAndSourceProtection),
     ("JSON inside log messages", tests.testJSONInsideLog),
+    ("Arbitrary fields", tests.testArbitraryFields),
     ("Automatic masking and exclusions", tests.testAutomaticMasking),
     ("Conservative analysis", tests.testConservativeAnalysis),
     ("Prepared analysis lifecycle", tests.testPreparedAnalysisLifecycle),
